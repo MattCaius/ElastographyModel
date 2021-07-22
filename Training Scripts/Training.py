@@ -2,9 +2,14 @@ import Utilities as utils
 from Custom_Classes import RF_PairLoader
 from sklearn.model_selection import train_test_split
 import Models
+import tensorflow as tf
 import tensorflow.keras as keras
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
+
+import os
+for device in tf.config.experimental.list_physical_devices('GPU'):
+    tf.config.experimental.set_memory_growth(device, True)
 
 config = ConfigProto()
 config.gpu_options.allow_growth = True
@@ -12,19 +17,12 @@ session = InteractiveSession(config=config)
 
 # import all relevant data
 
-filenames =[
-    "P32-W1-S4.mat",
-    "P39-W2-S4.mat",
-    "P39-W4-S6.mat",
-    "P87-W0-S3.mat",
-    "P87-W2-S4.mat",
-    "P90-W0-S4.mat",
-    "P94-W1-S3.mat",
-]
-
+label_path = "/home/matthew/Desktop/AI/Biomechanics Lab/Elastography Frame-Pair Evaluator/Labeling/"
 data_path = "/home/matthew/Desktop/AI/Biomechanics Lab/Elastography Frame-Pair Evaluator/Patient Data/"
 model_dir = "/home/matthew/Desktop/AI/Biomechanics Lab/Elastography Frame-Pair Evaluator/Models/"
-directory = utils.LoadDir(data_path, "Data_Directory.csv")
+filenames = os.listdir(data_path)
+
+directory = utils.LoadDir(label_path, "Data_Directory.csv")
 rawData = utils.LoadRaw(data_path, filenames)
 
 train_dir, valid_dir = train_test_split(directory, test_size= 0.2)
@@ -43,9 +41,12 @@ hyperparams = {
     'decay_rate' : 0.96
 }
 
+print("got model")
+
 model = Models.Get_3dCNN(train_loader.__getitem__(0)[0].shape, hyperparameters=hyperparams)
 
-already_trained = True
+already_trained = False
+
 if not already_trained:
     early_stopping_cb = keras.callbacks.EarlyStopping(monitor="val_acc", patience=15)
 
@@ -63,8 +64,10 @@ if not already_trained:
         callbacks= [early_stopping_cb, checkpoint_cb]
     )
 
+print("")
+
 y_true = valid_dir["Label axial"]
 
 model.load_weights(model_dir + "3d_image_classification.h5")
 
-NPVs, PPVs = utils.PPV_NPV_analysis(model, valid_loader, y_true[:252], 0.95, 0.5)
+NPVs, PPVs = utils.PPV_NPV_analysis(model, valid_loader, y_true, 0.95, 0.5)

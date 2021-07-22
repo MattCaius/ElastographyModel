@@ -4,6 +4,17 @@ from scipy.io import loadmat
 import matplotlib.pyplot as plt
 import pandas as pd
 
+# Downsample the RF Data into a resolution the network is trained on
+# input raw data
+
+def CropToShapeRaw(Data, target_length):
+
+    lowerI = int((Data['rf1'].shape[0]-target_length) / 2)
+
+    Data['rf1'] = tf.slice(Data['rf1'],[lowerI, 0, 0], [target_length, 256, Data['rf1'].shape[2]])
+
+    return Data
+
 # Generate the pair between ith and jth frame and return it as tensor, for use in custom generator
 # Returns shape [1, i, j , 2]
 
@@ -58,7 +69,8 @@ def LoadRaw(path, filenames):
     RawData = dict()
 
     for file in filenames:
-        RawData[file] = loadmat(path + file)
+        if file.endswith(".mat"):
+            RawData[file] = CropToShapeRaw(loadmat(path + file),2062)
 
     return RawData
 
