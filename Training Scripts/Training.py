@@ -69,7 +69,7 @@ y_true = valid_dir["Label axial"]
 
 model.load_weights(model_dir + "3d_image_classification.h5")
 
-NPVs, PPVs = utils.PPV_NPV_analysis(model, valid_loader, y_true, 0.95, 0.5)
+NPVs, PPVs = utils.PPV_NPV_analysis(model, valid_loader, y_true, 0.95, 0.5, save = True, path = "/home/matthew/Desktop/AI/Biomechanics Lab/Elastography Frame-Pair Evaluator/")
 
-utils.ROC_Analysis(model, valid_loader, y_true)
+utils.ROC_Analysis(model, valid_loader, y_true, save = True, path = "/home/matthew/Desktop/AI/Biomechanics Lab/Elastography Frame-Pair Evaluator/")
 

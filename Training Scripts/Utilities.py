@@ -27,7 +27,7 @@ def GenFramePair(i, j, frameData, scan):
 # Generate a plot to describe the negative and positive predictive value
 # Return NPV/PPV at various thresholds
 
-def PPV_NPV_analysis(model, testloader, y_true, PPV_target, NPV_target):
+def PPV_NPV_analysis(model, testloader, y_true, PPV_target, NPV_target, save = False, path = None):
 
     y_pred = model.predict(testloader)[:,0]
 
@@ -58,6 +58,10 @@ def PPV_NPV_analysis(model, testloader, y_true, PPV_target, NPV_target):
     plt.hlines(PPV_target,0,1)
     plt.xlabel("NPV")
     plt.ylabel("PPV")
+
+    if save:
+        plt.savefig(path+"PPV_NPV.png")
+
     plt.show()
 
     return NPVs,PPVs
@@ -65,7 +69,7 @@ def PPV_NPV_analysis(model, testloader, y_true, PPV_target, NPV_target):
 # ROC Curve Generate and Plot
 # Also AUC
 
-def ROC_Analysis(model, testloader, y_true):
+def ROC_Analysis(model, testloader, y_true, save = False, path = None):
 
     y_pred = model.predict(testloader)[:,0]
 
@@ -76,6 +80,10 @@ def ROC_Analysis(model, testloader, y_true):
     plt.xlabel("FPR")
     plt.ylabel("TPR")
     plt.title("ROC Curve, AUC: " + str(AUC))
+
+    if save:
+        plt.savefig(path+"ROC.png")
+
     plt.show()
 
 # Load in the raw data
