@@ -3,6 +3,7 @@ import tensorflow as tf
 from scipy.io import loadmat
 import matplotlib.pyplot as plt
 import pandas as pd
+from sklearn.metrics import roc_curve, roc_auc_score
 
 # Downsample the RF Data into a resolution the network is trained on
 # input raw data
@@ -38,10 +39,10 @@ def PPV_NPV_analysis(model, testloader, y_true, PPV_target, NPV_target):
         preds[preds >= thresh] = 1
         preds[preds < thresh] = 0
 
-        tp = np.sum((preds == 1) & (y_true == 1))
-        tn = np.sum((preds != 1) & (y_true != 1))
-        fp = np.sum((preds == 1) & (y_true != 1))
-        fn = np.sum((preds != 1) & (y_true == 1))
+        tp = np.sum((preds == 1) & (y_true[:y_pred.shape[0]] == 1))
+        tn = np.sum((preds != 1) & (y_true[:y_pred.shape[0]] != 1))
+        fp = np.sum((preds == 1) & (y_true[:y_pred.shape[0]] != 1))
+        fn = np.sum((preds != 1) & (y_true[:y_pred.shape[0]] == 1))
 
         NPV = tn/(tn+fn)
         PPV = tp/(tp+fp)
@@ -60,6 +61,22 @@ def PPV_NPV_analysis(model, testloader, y_true, PPV_target, NPV_target):
     plt.show()
 
     return NPVs,PPVs
+
+# ROC Curve Generate and Plot
+# Also AUC
+
+def ROC_Analysis(model, testloader, y_true):
+
+    y_pred = model.predict(testloader)[:,0]
+
+    FPR, TPR, Thresholds = roc_curve(y_true[:y_pred.shape[0]], y_pred)
+    AUC = roc_auc_score(y_true[:y_pred.shape[0]],y_pred)
+
+    plt.plot(FPR, TPR)
+    plt.xlabel("FPR")
+    plt.ylabel("TPR")
+    plt.title("ROC Curve, AUC: " + str(AUC))
+    plt.show()
 
 # Load in the raw data
 # Outputs a dict with structure dict[scanID]

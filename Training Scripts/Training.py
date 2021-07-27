@@ -7,6 +7,7 @@ import tensorflow.keras as keras
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
 
+
 import os
 for device in tf.config.experimental.list_physical_devices('GPU'):
     tf.config.experimental.set_memory_growth(device, True)
@@ -45,7 +46,7 @@ print("got model")
 
 model = Models.Get_3dCNN(train_loader.__getitem__(0)[0].shape, hyperparameters=hyperparams)
 
-already_trained = False
+already_trained = True
 
 if not already_trained:
     early_stopping_cb = keras.callbacks.EarlyStopping(monitor="val_acc", patience=15)
@@ -64,10 +65,11 @@ if not already_trained:
         callbacks= [early_stopping_cb, checkpoint_cb]
     )
 
-print("")
-
 y_true = valid_dir["Label axial"]
 
 model.load_weights(model_dir + "3d_image_classification.h5")
 
 NPVs, PPVs = utils.PPV_NPV_analysis(model, valid_loader, y_true, 0.95, 0.5)
+
+utils.ROC_Analysis(model, valid_loader, y_true)
+
