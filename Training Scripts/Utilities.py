@@ -4,6 +4,8 @@ from scipy.io import loadmat
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.metrics import roc_curve, roc_auc_score
+from sklearn.model_selection import train_test_split
+import random
 
 # Downsample the RF Data into a resolution the network is trained on
 # input raw data
@@ -11,6 +13,10 @@ from sklearn.metrics import roc_curve, roc_auc_score
 def CropToShapeRaw(Data, target_length):
 
     lowerI = int((Data['rf1'].shape[0]-target_length) / 2)
+
+    if lowerI < 0:
+        print("This scan is far too small")
+        return None
 
     Data['rf1'] = tf.slice(Data['rf1'],[lowerI, 0, 0], [target_length, 256, Data['rf1'].shape[2]])
 
@@ -20,6 +26,7 @@ def CropToShapeRaw(Data, target_length):
 # Returns shape [1, i, j , 2]
 
 def GenFramePair(i, j, frameData, scan):
+
     pairs = tf.convert_to_tensor(np.stack((frameData[scan]['rf1'][:,:,i - 1],
                                           frameData[scan]['rf1'][:,:,j - 1]), axis=-1))
     return tf.expand_dims(pairs, axis = 0)
@@ -91,11 +98,15 @@ def ROC_Analysis(model, testloader, y_true, save = False, path = None):
 
 def LoadRaw(path, filenames):
 
+    print("Loading Data...")
+
     RawData = dict()
 
     for file in filenames:
         if file.endswith(".mat"):
-            RawData[file] = CropToShapeRaw(loadmat(path + file),2062)
+            RawData[file] = CropToShapeRaw(loadmat(path + file), 2062)
+
+    print("The Data is Loaded")
 
     return RawData
 
@@ -103,3 +114,30 @@ def LoadRaw(path, filenames):
 
 def LoadDir(path, filename):
     return pd.read_csv(path+filename)
+
+# train/test split but add a stratification element
+
+def Stratify_Split(Directory, proportion, column = None):
+
+    # Can use as normal train test split
+    if column is None:
+        train_dir, valid_dir = train_test_split(Directory, test_size=proportion)
+        train_dir = train_dir.reset_index()
+        valid_dir = valid_dir.reset_index()
+        return train_dir, valid_dir
+
+    # Find uniques in column of interest
+    uniques = set(Directory[column])
+    num_unique = len(uniques)
+    n = int(proportion*num_unique) # no to hold out
+
+    print("holding out", n, "of " + column)
+
+    validation = random.sample(uniques, n)
+    training = uniques.difference(validation)
+
+    valid_dir = Directory.loc[Directory[column].isin(validation)].reset_index()
+    train_dir = Directory.loc[Directory[column].isin(training)].reset_index()
+
+    return train_dir, valid_dir
+
