@@ -141,3 +141,43 @@ def Stratify_Split(Directory, proportion, column = None):
 
     return train_dir, valid_dir
 
+# Pad bndr files to match
+
+def PadBndr(BndrData, target):
+
+    pad_i = target[0] - BndrData.shape[0]
+    pad_j = target[1] - BndrData.shape[1]
+
+    paddings = tf.constant([[0,pad_i], [0,pad_j]])
+
+    if pad_i != 0 or pad_j != 0:
+        BndrData = tf.pad(BndrData, paddings, "CONSTANT")
+
+    return tf.expand_dims(BndrData, -1)
+
+# load boundary files
+
+def LoadBndrData(path, filenames):
+
+    print("Loading Boundaries")
+
+    BndrData = dict()
+
+    for file in filenames:
+        if file.endswith(".mat"):
+
+            bndrname = file.replace(".mat","-T.mat")
+
+            try:
+                BndrData[bndrname] = PadBndr(np.asarray(loadmat(path + bndrname)["TumorArea"]), [1984,226])
+            except FileNotFoundError:
+                print("This file has no corresponding tumor boundary, which may cause problems if it is in the training or test set")
+
+    print("Done Loading Boundaries")
+    return BndrData
+
+# Get specific boundary
+
+def GetBndr(data, filename):
+
+    return tf.expand_dims(data[filename], 0)

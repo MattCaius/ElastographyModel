@@ -1,7 +1,7 @@
 import keras.engine
 import tensorflow as tf
 import numpy as np
-from Utilities import GenFramePair
+from Utilities import GenFramePair, GetBndr
 from tensorflow.keras import activations
 from tensorflow.keras import backend as K
 
@@ -56,17 +56,20 @@ class RandomTranslator(tf.keras.layers.Layer):
 class RF_PairLoader(tf.keras.utils.Sequence):
 
     def __init__(self, directory, rawData,
-                 scan_col, i_col, j_col, labels,
-                 batch_size, is3D = True):
+                 scan_col, i_col, j_col, labels, bndr_col,
+                 batch_size, bndrData, is3D = True, mixedModel = False):
 
         self.dir = directory
         self.rawData = rawData
+        self.bndrData = bndrData
         self.scan_col = scan_col
+        self.bndr_col = bndr_col
         self.i_col = i_col
         self.j_col = j_col
         self.labels = labels
         self.batch_size = batch_size
         self.is3D = is3D
+        self.mixedModel = mixedModel
 
         self.n = directory.shape[0]
 
@@ -76,21 +79,32 @@ class RF_PairLoader(tf.keras.utils.Sequence):
     def __getitem__(self, index):
 
         pairs = list()
+        bndrs = list()
 
         idx = list(range(index * self.batch_size, (index + 1) * self.batch_size))
 
         for index in idx:
-            X = GenFramePair(self.dir[self.i_col][index],
+            pair = GenFramePair(self.dir[self.i_col][index],
                              self.dir[self.j_col][index],
                              self.rawData, self.dir[self.scan_col][index]
                              )
-            pairs.append(X)
+
+            bndr = GetBndr(self.bndrData, self.dir[self.bndr_col][index])
+
+            pairs.append(pair)
+            bndrs.append(bndr)
 
         if self.is3D:
             x_batch = tf.expand_dims(tf.concat(pairs, 0), -1)
         else:
             x_batch = tf.concat(pairs, 0)
+
+        bndr_array = tf.concat(bndrs, 0)
+
         y_batch = self.dir[self.labels][idx]
+
+        if self.mixedModel:
+            return [np.asarray(x_batch), bndr_array], np.asarray(y_batch)
 
         return np.asarray(x_batch), np.asarray(y_batch)
 
